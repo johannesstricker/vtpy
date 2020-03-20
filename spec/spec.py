@@ -10,12 +10,9 @@ def random_bytes(length):
 
 class IntegrationSpec(Spec):
   def before_each(self):
-    KILOBYTE = 1000
-    SIZE_IN_KILOBYTES = 1000
+    ONE_MEGABYTE = 1000000
     self.file = tempfile.NamedTemporaryFile()
-    for i in range(SIZE_IN_KILOBYTES):
-      self.file.write(random_bytes(KILOBYTE))
-    print(f"File size is {self.file.tell()}")
+    self.file.write(random_bytes(ONE_MEGABYTE))
 
   def it_to_retrieve_results_from_virustotal(self):
     results = virustotal.upload(self.file.name)

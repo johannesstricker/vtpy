@@ -154,7 +154,10 @@ def get_upload_progress(driver, callback):
 
 
 def print_progress(percent):
-    print(f"{percent}% completed..", end="\r")
+    if percent == 100:
+        print(f"Analysis in progress..")
+    else:
+        print(f"{percent}% completed..", end="\r")
 
 
 def upload(file, headless=True, progress_callback = print_progress):

@@ -1,2 +1,3 @@
 specter
 argparse
+selenium

@@ -4,16 +4,14 @@ import random
 from virustotal import virustotal
 
 
-def random_bytes(length):
-  return bytearray(random.getrandbits(8) for _ in range(length))
-
-
 class IntegrationSpec(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
-    ONE_MEGABYTE = 100000
+    def random_bytes(length):
+      return bytearray(random.getrandbits(8) for _ in range(length))
+    FILE_SIZE_BYTES = 100000
     cls.file = tempfile.NamedTemporaryFile()
-    cls.file.write(random_bytes(ONE_MEGABYTE))
+    cls.file.write(random_bytes(FILE_SIZE_BYTES))
 
   def test_analyze_local_file(self):
     scan_results = virustotal.analyze(self.file.name, False)

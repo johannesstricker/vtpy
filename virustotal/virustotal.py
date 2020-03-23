@@ -1,40 +1,65 @@
 from selenium import webdriver
-from time import sleep
-import selenium.webdriver.support.ui as ui
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from time import sleep
 from contextlib import contextmanager
 import os
 import re
 
 
+class VirusTotalResult:
+    def __init__(self):
+        self.id = 0
+        self.total_results = 0
+        self.malicious_results = 0
+        self.detailed_results = []
+
+    def url(self):
+        return f"https://www.virustotal.com/gui/file/{self.id}/detection"
+        # return f"https://www.virustotal.com/gui/file-analysis/{self.id}/detection"
+
+
+class VirusTotalDetection:
+    UNDETECTED = 'Undetected'
+    NOT_PROCESSED = 'Unable to process file type'
+
+    def __init__(self, name, details):
+        self.name = name
+        self.details = details
+
+    def is_malicious(self):
+        return self.details not in [self.UNDETECTED, self.NOT_PROCESSED]
+
+    def was_scanned(self):
+        return self.details != self.NOT_PROCESSED
+
+
 def find_element(driver, selectors):
-    element = None
-    for selector in selectors:
-        if element is None:
-            element = driver.find_element_by_css_selector(selector)
-        else:
-            element = element.find_element_by_css_selector(selector)
+    element = driver.find_element_by_css_selector(selectors[0])
+    for selector in selectors[1:]:
         element = expand_shadow_element(driver, element) or element
+        element = element.find_element_by_css_selector(selector)
     return element
 
 
+def expand_shadow_element(driver, element):
+  shadow_root = driver.execute_script('return arguments[0].shadowRoot', element)
+  return shadow_root
+
+
 def bool_wait(driver, timeout, func):
-    wait = ui.WebDriverWait(driver, timeout)
     try:
-        wait.until(func)
+        WebDriverWait(driver, timeout).until(func)
     except:
         return False
     return True
 
 
 def wait_for_elem(driver, selectors, timeout = 10):
-    wait = ui.WebDriverWait(driver, timeout)
     try:
-        wait.until(lambda driver: find_element(driver, selectors))
+        return WebDriverWait(driver, timeout).until(lambda driver: find_element(driver, selectors))
     except:
-        return None
-    return driver.find_elements_by_css_selector(' '.join(selectors))
-    # return find_element(driver, selectors)
+        raise RuntimeError(f"Element not found: {selectors}")
 
 
 @contextmanager
@@ -43,22 +68,9 @@ def get_driver(headless=False):
     if headless:
         options.add_argument('--headless')
     options.add_argument('--log-level=3')
-    driver = webdriver.Chrome(chrome_options=options)
+    driver = webdriver.Chrome(options=options)
     yield driver
     driver.quit()
-
-
-def expand_shadow_element(driver, element):
-  shadow_root = driver.execute_script('return arguments[0].shadowRoot', element)
-  return shadow_root
-
-
-def get_upload_field(shadow, driver):
-    return shadow.find_element_by_css_selector('#fileSelector')
-
-
-def get_upload_button(shadow, driver):
-    return shadow.find_element_by_css_selector('#confirmUpload')
 
 
 def get_shadow_parent(driver, tags):
@@ -74,16 +86,6 @@ def get_shadow_parent(driver, tags):
             print(f'Shadow not found for {tag}')
             shadow = root
     return shadow
-
-
-def get_shadow_parent_for_upload(driver):
-    tags = ['vt-virustotal-app', 'home-view', 'vt-ui-main-upload-form']
-    return get_shadow_parent(driver, tags)
-
-
-def is_upload_button_visible(shadow, driver):
-    return get_upload_button(shadow, driver).get_attribute("hidden") is None
-
 
 def get_shadow_parent_for_id(driver):
     tags = ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-file-card']
@@ -108,27 +110,28 @@ def parse_int(value):
 def parse_detection(elem):
     name = elem.find_element_by_css_selector('.engine-name').text
     details = elem.find_element_by_css_selector('.individual-detection').text
-    malicious = details != 'Undetected'
-    return dict(name = name, details = details, malicious = malicious)
-
-
-def get_general_results(driver):
-    shadow = get_shadow_parent_for_id(driver)
-    file_id = shadow.find_element_by_css_selector('.file-id').text
-    shadow = get_shadow_parent_for_generic_results(driver)
-    total = parse_int(shadow.find_element_by_css_selector('.total').text)
-    malicious = parse_int(shadow.find_element_by_css_selector('.positives').text)
-    return { 'id': file_id, 'total_results': total, 'malicious_results': malicious }
+    return VirusTotalDetection(name, details)
 
 
 def get_detailed_results(driver):
     shadow = get_shadow_parent_for_detailed_results(driver)
     detections = shadow.find_elements_by_css_selector('.detection')
-    return { 'detailed_results': list(map(parse_detection, detections)) }
+    return list(map(parse_detection, detections))
 
 
 def get_results(driver):
-    return { **get_general_results(driver), **get_detailed_results(driver) }
+    result = VirusTotalResult()
+    id = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-file-card', '.file-id'])
+    WebDriverWait(driver, 10).until(lambda x: id.text != '')
+    result.id = id.text
+    total = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .total'])
+    WebDriverWait(driver, 10).until(lambda x: total.text != '')
+    result.total_results = parse_int(total.text)
+    malicious = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .positives'])
+    WebDriverWait(driver, 10).until(lambda x: malicious.text != '')
+    result.malicious_results = parse_int(malicious.text)
+    result.detailed_results = get_detailed_results(driver)
+    return result
 
 
 def is_upload_page(driver):
@@ -137,24 +140,46 @@ def is_upload_page(driver):
 
 
 def get_upload_progress(driver, callback):
-    shadow = get_shadow_parent_for_upload(driver)
-    buttons = shadow.find_elements_by_css_selector("vt-ui-button.blue.filled")
-    pattern = 'Uploading (\d+)%'
-    for button in buttons:
-        matches = re.findall('Uploading (\d+)%', button.text)
-        if len(matches) == 0:
-            continue
-        progress = -1
-        while progress < 100:
-            value = int(matches[0])
-            if value != progress:
-                progress = value
-                callback(progress)
+    upload_form = wait_for_elem(driver, ['vt-virustotal-app', 'home-view', 'vt-ui-main-upload-form', '.wrapper'])
+    buttons = upload_form.find_elements_by_css_selector("vt-ui-button.blue.filled")
+    progress = -1
+    while progress < 100:
+        found_match = False
+        for button in buttons:
             matches = re.findall('Uploading (\d+)%', button.text)
+            found_match = len(matches) > 0
+            if found_match:
+                value = int(matches[0])
+                if value != progress:
+                    callback(value)
+                progress = value
+                break
+        if not found_match and progress > 0:
+            callback(100)
+            return
+
+
+def set_upload_file(driver, file):
+    input = wait_for_elem(driver, ['vt-virustotal-app', 'home-view', 'vt-ui-main-upload-form', '#fileSelector'])
+    input.send_keys(os.path.realpath(file))
+    sleep(1)
+
+
+def accept_cookie_header(driver):
+    button = find_element(driver, ['vt-virustotal-app', '#euConsent vt-ui-button'])
+    button.click()
+    sleep(1)
+
+
+def confirm_upload(driver):
+    button = wait_for_elem(driver, ['vt-virustotal-app', 'home-view', 'vt-ui-main-upload-form', '#confirmUpload'])
+    WebDriverWait(driver, 10).until(lambda x: button.get_attribute('hidden') is None)
+    button.click()
+    sleep(1)
 
 
 def print_progress(percent):
-    if percent == 100:
+    if percent >= 100:
         print(f"Analysis in progress..")
     else:
         print(f"{percent}% completed..", end="\r")
@@ -163,31 +188,22 @@ def print_progress(percent):
 def upload(file, headless=True, progress_callback = print_progress):
     with get_driver(headless) as driver:
         driver.get("https://virustotal.com")
-        # Wait for the shadow dom.
-        if not bool_wait(driver, 10, lambda driver: get_shadow_parent_for_upload(driver)):
-            return None
-        shadow = get_shadow_parent_for_upload(driver)
-        # Wait for the file input.
-        if not bool_wait(driver, 10, lambda driver: get_upload_field(shadow, driver)):
-            return None
-        input = get_upload_field(shadow, driver)
-        input.send_keys(os.path.realpath(file))
+        set_upload_file(driver, file)
+        accept_cookie_header(driver)
         # Wait for the 'Confirm Upload' button. If it doesn't appear, the file might
         # have already been known and we have been redirected to the results page.
-        if not bool_wait(driver, 10, lambda driver:  is_upload_button_visible(shadow, driver)):
-            return None
-        button = get_upload_button(shadow, driver)
-        button.click()
+        confirm_upload(driver)
         get_upload_progress(driver, progress_callback)
         # During analysis the following url is present.
         # TODO: add detailed progression checks.
         # https://www.virustotal.com/gui/file-analysis/ZDJiMjhjMWI2NGZhMzc4MjYwZmYyMzdkMWI3NTA2NGM6MTU0NjUxODU2Mw==
         # Wait for success page.
         if not bool_wait(driver, 600, lambda driver: "https://www.virustotal.com/gui/file/" in driver.current_url):
-            print("Unexpected final url.")
-            return None
+            raise RuntimeError("Unexpected final url.")
+        # pass url here and check if the page is already set or not
         results = get_results(driver)
-        return { 'url': driver.current_url, **results }
+        results.url = driver.current_url
+        return results
 
 
 def analyze(id, headless=True):

@@ -24,4 +24,4 @@ class IntegrationSpec(unittest.TestCase):
     was_scanned = len([x for x in scan_results.detailed_results if x.was_scanned()])
     self.assertEqual(scan_results.total_results, was_scanned)
     # ensure that the same file can be analyzed twice
-    self.assertEqual(scan_results.id, virustotal.analyze(self.file.name, False).id)
+    self.assertEqual(scan_results.id, virustotal.analyze(self.file.name).id)

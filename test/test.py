@@ -9,17 +9,21 @@ def random_bytes(length):
 
 
 class IntegrationSpec(unittest.TestCase):
-  def setUp(self):
+  @classmethod
+  def setUpClass(cls):
     ONE_MEGABYTE = 100000
-    self.file = tempfile.NamedTemporaryFile()
-    self.file.write(random_bytes(ONE_MEGABYTE))
+    cls.file = tempfile.NamedTemporaryFile()
+    cls.file.write(random_bytes(ONE_MEGABYTE))
 
-  def test_it_to_retrieve_results_from_virustotal(self):
-    result = virustotal.upload(self.file.name, False)
-    self.assertIsNot(result.id, '')
-    self.assertGreater(result.total_results, 0)
-    self.assertEqual(result.malicious_results, 0)
-    for detection in result.detailed_results:
-      self.assertFalse(detection.is_malicious())
-    was_scanned = list(filter(lambda x: x.was_scanned(), result.detailed_results))
-    self.assertEqual(result.total_results, len(was_scanned))
+  def test_analyze_local_file(self):
+    scan_results = virustotal.analyze(self.file.name, False)
+    self.assertIsNot(scan_results.id, '')
+    self.assertGreater(scan_results.total_results, 0)
+    # ensure that the number of malicious results is correct
+    is_malicious = len([x for x in scan_results.detailed_results if x.is_malicious()])
+    self.assertEqual(scan_results.malicious_results, is_malicious)
+    # ensure that the total number of scan results is correct
+    was_scanned = len([x for x in scan_results.detailed_results if x.was_scanned()])
+    self.assertEqual(scan_results.total_results, was_scanned)
+    # ensure that the same file can be analyzed twice
+    self.assertEqual(scan_results.id, virustotal.analyze(self.file.name, False).id)

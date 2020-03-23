@@ -40,72 +40,6 @@ class VirusTotalDetection:
         return self.details != self.NOT_PROCESSED
 
 
-class VirusTotalUploadPage:
-    def __init__(self, driver):
-        self.driver = driver
-
-    def open(self):
-        self.driver.get("https://virustotal.com")
-
-    def set_upload_file(self, file):
-        pass
-
-    def accept_cookie_header(self):
-        pass
-
-    def confirm_upload(self):
-        pass
-
-    def wait_for_upload(self, callback = lambda x: print(x)):
-        pass
-
-class VirusTotalResultsPage:
-    def __init__(self, driver):
-        self.driver = driver
-
-    def file_id(self):
-        pass
-
-    def detection_count(self):
-        pass
-
-    def malicious_detection_count(self):
-        pass
-
-    def detections(self):
-        pass
-
-
-
-
-def find_element(driver, selectors):
-    element = driver.find_element_by_css_selector(selectors[0])
-    for selector in selectors[1:]:
-        element = expand_shadow_element(driver, element) or element
-        element = element.find_element_by_css_selector(selector)
-    return element
-
-
-def expand_shadow_element(driver, element):
-  shadow_root = driver.execute_script('return arguments[0].shadowRoot', element)
-  return shadow_root
-
-
-def bool_wait(driver, timeout, func):
-    try:
-        WebDriverWait(driver, timeout).until(func)
-    except:
-        return False
-    return True
-
-
-def wait_for_elem(driver, selectors, timeout = WAIT_TIME):
-    try:
-        return WebDriverWait(driver, timeout).until(lambda driver: find_element(driver, selectors))
-    except:
-        raise RuntimeError(f"Element not found: {selectors}")
-
-
 @contextmanager
 def webdriver(headless=False):
     options = Options()
@@ -117,64 +51,48 @@ def webdriver(headless=False):
     driver.quit()
 
 
-def get_shadow_parent(driver, tags):
-    root = None
-    shadow = driver
-    for tag in tags:
-        root = shadow.find_element_by_css_selector(tag)
-        if root is None:
-            print(f'{tag} not found!')
-            return None
-        shadow = expand_shadow_element(driver, root)
-        if shadow is None:
-            print(f'Shadow not found for {tag}')
-            shadow = root
-    return shadow
-
-def get_shadow_parent_for_id(driver):
-    tags = ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-file-card']
-    return get_shadow_parent(driver, tags)
+def find_element(driver, selectors):
+    def expand_shadow_element(driver, element):
+        return driver.execute_script('return arguments[0].shadowRoot', element)
+    element = driver.find_element_by_css_selector(selectors[0])
+    for selector in selectors[1:]:
+        element = expand_shadow_element(driver, element) or element
+        element = element.find_element_by_css_selector(selector)
+    return element
 
 
-def get_shadow_parent_for_generic_results(driver):
-    tags = ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget']
-    return get_shadow_parent(driver, tags)
+def wait_for_elem(driver, selectors, timeout = WAIT_TIME):
+    try:
+        return WebDriverWait(driver, timeout).until(lambda driver: find_element(driver, selectors))
+    except:
+        raise RuntimeError(f"Element not found: {selectors}")
 
 
-def get_shadow_parent_for_detailed_results(driver):
-    tags = ['vt-virustotal-app', 'file-view', 'vt-ui-detections-list']
-    return get_shadow_parent(driver, tags)
+def get_detection_details(driver):
+    def get_single_detection(element):
+        name = element.find_element_by_css_selector('.engine-name').text
+        details = element.find_element_by_css_selector('.individual-detection').text
+        return VirusTotalDetection(name, details)
+    detections_list = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-detections-list', '#detections'])
+    detections = detections_list.find_elements_by_css_selector('.detection')
+    return list(map(get_single_detection, detections))
 
 
-def parse_int(value):
-    digits = '0123456789'
-    return int(''.join([x for x in value if x in digits]))
-
-
-def parse_detection(elem):
-    name = elem.find_element_by_css_selector('.engine-name').text
-    details = elem.find_element_by_css_selector('.individual-detection').text
-    return VirusTotalDetection(name, details)
-
-
-def get_detailed_results(driver):
-    shadow = get_shadow_parent_for_detailed_results(driver)
-    detections = shadow.find_elements_by_css_selector('.detection')
-    return list(map(parse_detection, detections))
-
-
-def get_results(driver):
+def get_analysis_results(driver):
+    def extract_int(value):
+        digits = '0123456789'
+        return int(''.join([x for x in value if x in digits]))
     result = VirusTotalResult()
-    id = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-file-card', '.file-id'])
-    WebDriverWait(driver, WAIT_TIME).until(lambda x: id.text != '')
-    result.id = id.text
-    total = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .total'])
-    WebDriverWait(driver, WAIT_TIME).until(lambda x: total.text != '')
-    result.total_results = parse_int(total.text)
-    malicious = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .positives'])
-    WebDriverWait(driver, WAIT_TIME).until(lambda x: malicious.text != '')
-    result.malicious_results = parse_int(malicious.text)
-    result.detailed_results = get_detailed_results(driver)
+    file_id_element = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-file-card', '.file-id'])
+    WebDriverWait(driver, WAIT_TIME).until(lambda x: file_id_element.text != '')
+    result.id = extract_int(file_id_element.text)
+    total_element = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .total'])
+    WebDriverWait(driver, WAIT_TIME).until(lambda x: total_element.text != '')
+    result.total_results = extract_int(total_element.text)
+    malicious_element = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .positives'])
+    WebDriverWait(driver, WAIT_TIME).until(lambda x: malicious_element.text != '')
+    result.malicious_results = extract_int(malicious_element.text)
+    result.detailed_results = get_detection_details(driver)
     return result
 
 
@@ -270,4 +188,4 @@ def analyze(file, headless=True, progress_callback = lambda percent_complete: No
             confirm_upload(driver)
             wait_until_upload_finished(driver, progress_callback)
             wait_until_analysis_finished(driver)
-        return get_results(driver)
+        return get_analysis_results(driver)

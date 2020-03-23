@@ -14,7 +14,7 @@ class IntegrationSpec(unittest.TestCase):
     cls.file.write(random_bytes(FILE_SIZE_BYTES))
 
   def test_analyze_local_file(self):
-    scan_results = virustotal.analyze(self.file.name, False)
+    scan_results = virustotal.analyze(self.file.name)
     self.assertIsNot(scan_results.id, '')
     self.assertGreater(scan_results.total_results, 0)
     # ensure that the number of malicious results is correct
@@ -24,4 +24,4 @@ class IntegrationSpec(unittest.TestCase):
     was_scanned = len([x for x in scan_results.detailed_results if x.was_scanned()])
     self.assertEqual(scan_results.total_results, was_scanned)
     # ensure that the same file can be analyzed twice
-    self.assertEqual(scan_results.id, virustotal.analyze(self.file.name, False).id)
+    self.assertEqual(scan_results.id, virustotal.analyze(self.file.name).id)

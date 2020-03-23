@@ -104,7 +104,10 @@ def set_upload_file(driver, file):
 
 def accept_cookie_header(driver):
     button = find_element(driver, ['vt-virustotal-app', '#euConsent vt-ui-button'])
-    button.click()
+    try:
+        button.click()
+    except:
+        pass
     sleep(1)
 
 

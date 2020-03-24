@@ -1,5 +1,7 @@
 # vtpy - virustotal.com upload
 [![Actions Status](https://github.com/johannesstricker/vtpy/workflows/vtpy/badge.svg)](https://github.com/johannesstricker/vtpy/actions)
+
+
 vtpy can upload single files to [virustotal.com](https://virustotal.com) for virus analysis. Instead
 of the [virustotal api](https://support.virustotal.com/hc/en-us/articles/115002100149-API) it uses a
 headless chrome browser with selenium. This allows it to upload files without a file size limit.

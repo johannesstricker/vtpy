@@ -20,6 +20,14 @@ class VirusTotalResult:
         self.malicious_results = 0
         self.detailed_results = []
 
+    def __str__(self):
+        return str({
+            "id": self.id,
+            "total_results": self.total_results,
+            "malicious_results": self.malicious_results,
+            "detailed_results": list(map(str, self.detailed_results))
+        })
+
     def url(self):
         return f"https://www.virustotal.com/gui/file/{self.id}/detection"
 
@@ -31,6 +39,9 @@ class VirusTotalDetection:
     def __init__(self, name, details):
         self.name = name
         self.details = details
+
+    def __str__(self):
+        return str({"name": self.name, "details": self.details})
 
     def is_malicious(self):
         return self.details not in [self.UNDETECTED, self.NOT_PROCESSED]
@@ -84,7 +95,7 @@ def get_analysis_results(driver):
     result = VirusTotalResult()
     file_id_element = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-file-card', '.file-id'])
     WebDriverWait(driver, WAIT_TIME).until(lambda x: file_id_element.text != '')
-    result.id = extract_int(file_id_element.text)
+    result.id = file_id_element.text
     total_element = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .total'])
     WebDriverWait(driver, WAIT_TIME).until(lambda x: total_element.text != '')
     result.total_results = extract_int(total_element.text)

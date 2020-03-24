@@ -22,7 +22,6 @@ class VirusTotalResult:
 
     def url(self):
         return f"https://www.virustotal.com/gui/file/{self.id}/detection"
-        # return f"https://www.virustotal.com/gui/file-analysis/{self.id}/detection"
 
 
 class VirusTotalDetection:

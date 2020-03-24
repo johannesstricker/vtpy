@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 import argparse
 import pprint
-import virustotal
+import vtpy
 
 
-parser = argparse.ArgumentParser(description='Upload a file to virustotal.com and retrieve the url.')
+parser = argparse.ArgumentParser(description='Upload a file to virustotal.com and have it analyzed.')
 parser.add_argument('--file', type=str, required=True, help='The absolute path to the file to upload.')
 args = parser.parse_args()
-# results = virustotal.upload(args.file, False)
-results = virustotal.detections(args.file, False)
+results = vtpy.analyze(args.file)
 if results is None:
-  print("Upload failed.")
+  print("Upload or analysis failed.")
 else:
   pprint.PrettyPrinter(indent=4).print(results)

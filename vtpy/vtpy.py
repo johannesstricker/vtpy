@@ -21,12 +21,16 @@ class VirusTotalResult:
         self.detailed_results = []
 
     def __str__(self):
-        return str({
+        return str(self.to_dict())
+
+    def to_dict(self):
+        return {
             "id": self.id,
+            "url": self.url(),
             "total_results": self.total_results,
             "malicious_results": self.malicious_results,
-            "detailed_results": list(map(str, self.detailed_results))
-        })
+            "detailed_results": list(map(lambda x: x.to_dict(), self.detailed_results))
+        }
 
     def url(self):
         return f"https://www.virustotal.com/gui/file/{self.id}/detection"
@@ -41,7 +45,15 @@ class VirusTotalDetection:
         self.details = details
 
     def __str__(self):
-        return str({"name": self.name, "details": self.details})
+        return str(self.to_dict())
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "is_malicious": self.is_malicious(),
+            "was_scanned": self.was_scanned(),
+            "details": self.details
+        }
 
     def is_malicious(self):
         return self.details not in [self.UNDETECTED, self.NOT_PROCESSED]
@@ -53,6 +65,7 @@ class VirusTotalDetection:
 @contextmanager
 def webdriver(headless=False):
     options = Options()
+    options.add_experimental_option('excludeSwitches', ['enable-logging'])
     if headless:
         options.add_argument('--headless')
     options.add_argument('--log-level=3')

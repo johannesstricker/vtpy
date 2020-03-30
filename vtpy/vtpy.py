@@ -38,7 +38,11 @@ class VirusTotalResult:
 
 class VirusTotalDetection:
     UNDETECTED = 'Undetected'
-    NOT_PROCESSED = 'Unable to process file type'
+    UNABLE_TO_PROCESS = [
+        'Unable to process file type',
+        'Timeout',
+        'Confirmed timeout'
+    ]
 
     def __init__(self, name, details):
         self.name = name
@@ -56,10 +60,10 @@ class VirusTotalDetection:
         }
 
     def is_malicious(self):
-        return self.details not in [self.UNDETECTED, self.NOT_PROCESSED]
+        return self.details != self.UNDETECTED and self.details not in self.UNABLE_TO_PROCESS
 
     def was_scanned(self):
-        return self.details != self.NOT_PROCESSED
+        return self.details not in self.UNABLE_TO_PROCESS
 
 
 @contextmanager

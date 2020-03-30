@@ -106,7 +106,7 @@ def get_detection_details(driver):
 
 
 def validate_analysis_results(results):
-    num_total = len(results.detailed_results)
+    num_total = len([x for x in results.detailed_results if x.was_scanned()])
     num_malicious = len([x for x in results.detailed_results if x.is_malicious()])
     if num_total != results.total_results:
         raise RuntimeError(f"Invalid analysis results: expected {results.total_results} scan results, but got {num_total}!")

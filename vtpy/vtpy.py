@@ -105,6 +105,15 @@ def get_detection_details(driver):
     return list(map(get_single_detection, detections))
 
 
+def validate_analysis_results(results):
+    num_total = len([x for x in results.detailed_results if x.was_scanned()])
+    num_malicious = len([x for x in results.detailed_results if x.is_malicious()])
+    if num_total != results.total_results:
+        raise RuntimeError(f"Invalid analysis results: expected {results.total_results} scan results, but got {num_total}!")
+    if num_malicious != results.malicious_results:
+        raise RuntimeError(f"Invalid analysis results: expected {results.malicious_results} malicious scan results, but got {num_malicious}!")
+
+
 def get_analysis_results(driver):
     def extract_int(value):
         digits = '0123456789'
@@ -120,6 +129,7 @@ def get_analysis_results(driver):
     WebDriverWait(driver, WAIT_TIME).until(lambda x: malicious_element.text != '')
     result.malicious_results = extract_int(malicious_element.text)
     result.detailed_results = get_detection_details(driver)
+    validate_analysis_results(result)
     return result
 
 

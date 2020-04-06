@@ -41,7 +41,8 @@ class VirusTotalDetection:
     UNABLE_TO_PROCESS = [
         'Unable to process file type',
         'Timeout',
-        'Confirmed timeout'
+        'Confirmed timeout',
+        ''
     ]
 
     def __init__(self, name, details):

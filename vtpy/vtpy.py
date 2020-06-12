@@ -136,6 +136,7 @@ def get_analysis_results(driver):
 
 def set_upload_file(driver, file):
     input = wait_for_elem(driver, ['vt-virustotal-app', 'home-view', 'vt-ui-main-upload-form', '#fileSelector'])
+    sleep(1)
     input.send_keys(os.path.realpath(file))
     sleep(1)
 

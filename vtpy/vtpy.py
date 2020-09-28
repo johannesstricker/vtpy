@@ -101,7 +101,7 @@ def get_detection_details(driver):
         name = element.find_element_by_css_selector('.engine-name').text
         details = element.find_element_by_css_selector('.individual-detection').text
         return VirusTotalDetection(name, details)
-    detections_list = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-detections-list', '#detections'])
+    detections_list = wait_for_elem(driver, ['file-view', 'vt-ui-detections-list', '#detections'])
     detections = detections_list.find_elements_by_css_selector('.detection')
     return list(map(get_single_detection, detections))
 
@@ -120,13 +120,13 @@ def get_analysis_results(driver):
         digits = '0123456789'
         return int(''.join([x for x in value if x in digits]))
     result = VirusTotalResult()
-    file_id_element = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-file-card', '.file-id'])
+    file_id_element = wait_for_elem(driver, ['file-view', 'vt-ui-main-generic-report', 'vt-ui-file-card', '.file-id'])
     WebDriverWait(driver, WAIT_TIME).until(lambda x: file_id_element.text != '')
     result.id = file_id_element.text
-    total_element = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .total'])
+    total_element = wait_for_elem(driver, ['file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .total'])
     WebDriverWait(driver, WAIT_TIME).until(lambda x: total_element.text != '')
     result.total_results = extract_int(total_element.text)
-    malicious_element = wait_for_elem(driver, ['vt-virustotal-app', 'file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .positives'])
+    malicious_element = wait_for_elem(driver, ['file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .positives'])
     WebDriverWait(driver, WAIT_TIME).until(lambda x: malicious_element.text != '')
     result.malicious_results = extract_int(malicious_element.text)
     result.detailed_results = get_detection_details(driver)
@@ -135,14 +135,14 @@ def get_analysis_results(driver):
 
 
 def set_upload_file(driver, file):
-    input = wait_for_elem(driver, ['vt-virustotal-app', 'home-view', 'vt-ui-main-upload-form', '#fileSelector'])
+    input = wait_for_elem(driver, ['home-view', 'vt-ui-main-upload-form', '#fileSelector'])
     sleep(1)
     input.send_keys(os.path.realpath(file))
     sleep(1)
 
 
 def accept_cookie_header(driver):
-    button = find_element(driver, ['vt-virustotal-app', '#euConsent vt-ui-button'])
+    button = find_element(driver, ['vt-ui-shell', '#euConsent vt-ui-button'])
     try:
         button.click()
     except:
@@ -159,7 +159,7 @@ def wait_until_hash_computed(driver):
 
 
 def get_hash_progress_button(driver):
-    upload_form = wait_for_elem(driver, ['vt-virustotal-app', 'home-view', 'vt-ui-main-upload-form', '.wrapper'])
+    upload_form = wait_for_elem(driver, ['home-view', 'vt-ui-main-upload-form', '.wrapper'])
     if upload_form is None:
         return None
     buttons = upload_form.find_elements_by_css_selector("vt-ui-button.blue.filled")
@@ -175,7 +175,7 @@ def is_results_page(driver):
 
 
 def confirm_upload(driver):
-    button = wait_for_elem(driver, ['vt-virustotal-app', 'home-view', 'vt-ui-main-upload-form', '#confirmUpload'])
+    button = wait_for_elem(driver, ['home-view', 'vt-ui-main-upload-form', '#confirmUpload'])
     WebDriverWait(driver, WAIT_TIME).until(lambda x: button.get_attribute('hidden') is None)
     button.click()
     sleep(1)
@@ -196,7 +196,7 @@ def wait_until_analysis_finished(driver):
 
 
 def get_upload_progress_button(driver):
-    upload_form = wait_for_elem(driver, ['vt-virustotal-app', 'home-view', 'vt-ui-main-upload-form', '.wrapper'])
+    upload_form = wait_for_elem(driver, ['home-view', 'vt-ui-main-upload-form', '.wrapper'])
     if upload_form is None:
         return None
     buttons = upload_form.find_elements_by_css_selector("vt-ui-button.blue.filled")

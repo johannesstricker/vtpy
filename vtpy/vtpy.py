@@ -120,7 +120,7 @@ def get_analysis_results(driver):
         digits = '0123456789'
         return int(''.join([x for x in value if x in digits]))
     result = VirusTotalResult()
-    file_id_element = wait_for_elem(driver, ['file-view', 'vt-ui-main-generic-report', 'vt-ui-file-card', '.file-id'])
+    file_id_element = wait_for_elem(driver, ['file-view', 'vt-ui-file-card', '.file-id'])
     WebDriverWait(driver, WAIT_TIME).until(lambda x: file_id_element.text != '')
     result.id = file_id_element.text
     total_element = wait_for_elem(driver, ['file-view', 'vt-ui-main-generic-report', 'vt-ui-detections-widget', '.engines .circle .total'])
@@ -221,7 +221,7 @@ def get_progress_from_button(button):
 
 
 def analyze(file, headless=True, progress_callback = lambda percent_complete: None):
-    with webdriver(headless) as driver:
+    with webdriver(False) as driver:
         driver.get("https://virustotal.com")
         set_upload_file(driver, file)
         wait_until_hash_computed(driver)

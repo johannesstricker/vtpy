@@ -142,6 +142,7 @@ def set_upload_file(driver, file):
 
 
 def accept_cookie_header(driver):
+    return
     button = find_element(driver, ['vt-ui-shell', '#euConsent vt-ui-button'])
     try:
         button.click()
@@ -221,7 +222,7 @@ def get_progress_from_button(button):
 
 
 def analyze(file, headless=True, progress_callback = lambda percent_complete: None):
-    with webdriver(False) as driver:
+    with webdriver(headless) as driver:
         driver.get("https://virustotal.com")
         set_upload_file(driver, file)
         wait_until_hash_computed(driver)
